@@ -2,54 +2,71 @@ import Cocoa
 import SwiftUI
 
 struct ClockView: View {
-  @State var time = "--:--"
+  @State
+  private var time = "--:--"
 
-  @State var closeEnabled = false
+  @State
+  private var closeEnabled = false
 
-  let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  @State
+  private var hidden = false
+
+  @State
+  private var hideTimer: Timer?
+
+  private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     GeometryReader { geometry in
       ZStack {
-        VStack {
-          Text(self.time)
-            .onReceive(self.timer) { input in
-              let formatter = DateFormatter()
-              formatter.dateFormat = "HH:mm"
-              self.time = formatter.string(from: input)
-            }
-            .font(
-              Font.system(
-                size: (pow(geometry.size.width, 2)
-                  + pow(geometry.size.height, 2)).squareRoot() / 4
-              ).bold()
-            )
-            .padding()
-        }.frame(width: geometry.size.width, height: geometry.size.height)
-          .background(Color.black)
-          .cornerRadius(10)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-        if self.closeEnabled {
+        if !hidden {
           VStack {
-            HStack {
-              Spacer()
-              Button(action: {
-                NSApplication.shared.terminate(nil)
-              }) {
-                Text("x")
-                  .padding(.bottom, 3)
-                  .frame(width: 17, height: 17)
-                  .background(Color.gray)
-                  .foregroundColor(.primary)
-                  .clipShape(Circle())
+            Text(self.time)
+              .onReceive(self.timer) { input in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                self.time = formatter.string(from: input)
               }
-              .buttonStyle(PlainButtonStyle())
-            }.padding(.horizontal, 5)
+              .font(
+                Font.system(
+                  size: (pow(geometry.size.width, 2)
+                    + pow(geometry.size.height, 2)).squareRoot() / 4
+                ).bold()
+              )
+              .padding()
+          }.frame(width: geometry.size.width, height: geometry.size.height)
+            .background(Color.black)
+            .cornerRadius(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Spacer()
+          if self.closeEnabled {
+            VStack {
+              HStack {
+                Spacer()
+                Button(action: {
+                  NSApplication.shared.terminate(nil)
+                }) {
+                  Text("x")
+                    .padding(.bottom, 3)
+                    .frame(width: 17, height: 17)
+                    .background(Color.gray)
+                    .foregroundColor(.primary)
+                    .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+              }.padding(.horizontal, 5)
+
+              Spacer()
+            }
+            .padding(.vertical, 5)
           }
-          .padding(.vertical, 5)
+        }
+      }
+      .onTapGesture(count: 2) {
+        hidden = true
+        hideTimer?.invalidate()
+        hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
+          self.hidden = false
         }
       }
       .onHover {

@@ -19,47 +19,45 @@ struct ClockView: View {
   var body: some View {
     GeometryReader { geometry in
       ZStack {
-        if !hidden {
-          VStack {
-            Text(self.time)
-              .onReceive(self.timer) { input in
-                let formatter = DateFormatter()
-                formatter.dateFormat = "HH:mm"
-                self.time = formatter.string(from: input)
-              }
-              .font(
-                Font.system(
-                  size: (pow(geometry.size.width, 2)
-                    + pow(geometry.size.height, 2)).squareRoot() / 4
-                ).bold()
-              )
-              .padding()
-          }.frame(width: geometry.size.width, height: geometry.size.height)
-            .background(Color.black)
-            .cornerRadius(10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-          if self.closeEnabled {
-            VStack {
-              HStack {
-                Spacer()
-                Button(action: {
-                  NSApplication.shared.terminate(nil)
-                }) {
-                  Text("x")
-                    .padding(.bottom, 3)
-                    .frame(width: 17, height: 17)
-                    .background(Color.gray)
-                    .foregroundColor(.primary)
-                    .clipShape(Circle())
-                }
-                .buttonStyle(PlainButtonStyle())
-              }.padding(.horizontal, 5)
-
-              Spacer()
+        VStack {
+          Text(self.time)
+            .onReceive(self.timer) { input in
+              let formatter = DateFormatter()
+              formatter.dateFormat = "HH:mm"
+              self.time = formatter.string(from: input)
             }
-            .padding(.vertical, 5)
+            .font(
+              Font.system(
+                size: (pow(geometry.size.width, 2)
+                  + pow(geometry.size.height, 2)).squareRoot() / 4
+              ).bold()
+            )
+            .padding()
+        }.frame(width: geometry.size.width, height: self.hidden ? 0 : geometry.size.height)
+          .background(Color.black)
+          .cornerRadius(10)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        if self.closeEnabled {
+          VStack {
+            HStack {
+              Spacer()
+              Button(action: {
+                NSApplication.shared.terminate(nil)
+              }) {
+                Text("x")
+                  .padding(.bottom, 3)
+                  .frame(width: 17, height: self.hidden ? 0 : 17)
+                  .background(Color.gray)
+                  .foregroundColor(.primary)
+                  .clipShape(Circle())
+              }
+              .buttonStyle(PlainButtonStyle())
+            }.padding(.horizontal, 5)
+
+            Spacer()
           }
+          .padding(.vertical, 5)
         }
       }
       .onTapGesture(count: 2) {

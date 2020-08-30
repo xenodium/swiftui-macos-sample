@@ -13,7 +13,7 @@ struct ClockView: View {
 
   // Variable tap count, because when the window is not focused, we need 3 taps (to achieve 2) ¯\_(ツ)_/¯
   @State
-  private var tapCount = 2
+  private var tapCount = 3
 
   @State
   private var hidden = false

@@ -77,32 +77,29 @@ struct ClockView: View {
             }
           }
       )
+      // Mouse events are more effective than onHover (because hover doesn't trigger on macOS if window is not active).
       .onReceive(
         NotificationCenter.default.publisher(for: ClockView.mouseDidExitNotification)
       ) { _ in
         self.closeEnabled = false
       }
       .onReceive(
+        NotificationCenter.default.publisher(for: ClockView.mouseDidEnterNotification)
+      ) { _ in
+        self.closeEnabled = true
+      }
+      .onReceive(
         NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
       ) { _ in
-        self.closeEnabled = false
+        // Need to delay it or else a single tap when window is not focused results in false positive.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
           self.tapCount = 2
         }
       }
       .onReceive(
-        NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)
+        NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
       ) { _ in
-        self.closeEnabled = false
         self.tapCount = 3
-      }
-      .onReceive(
-        NotificationCenter.default.publisher(for: ClockView.mouseDidEnterNotification)
-      ) { _ in
-        self.closeEnabled = true
-      }
-      .onHover {
-        self.closeEnabled = $0
       }
     }
   }

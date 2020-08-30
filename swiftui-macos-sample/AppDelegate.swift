@@ -2,11 +2,18 @@ import Cocoa
 import SwiftUI
 
 struct ClockView: View {
+  static let mouseDidEnterNotification = Notification.Name("ClockMouseDidEnterNotification")
+  static let mouseDidExitNotification = Notification.Name("ClockMouseDidExitNotification")
+
   @State
   private var time = "--:--"
 
   @State
   private var closeEnabled = false
+
+  // Variable tap count, because when the window is not focused, we need 3 taps (to achieve 2) ¯\_(ツ)_/¯
+  @State
+  private var tapCount = 2
 
   @State
   private var hidden = false
@@ -60,12 +67,39 @@ struct ClockView: View {
           .padding(.vertical, 5)
         }
       }
-      .onTapGesture(count: 2) {
-        hidden = true
-        hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
-          self.hidden = false
+      .gesture(
+        TapGesture(count: self.tapCount)
+          .onEnded { _ in
+            hidden = true
+            hideTimer?.invalidate()
+            hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
+              self.hidden = false
+            }
+          }
+      )
+      .onReceive(
+        NotificationCenter.default.publisher(for: ClockView.mouseDidExitNotification)
+      ) { _ in
+        self.closeEnabled = false
+      }
+      .onReceive(
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+      ) { _ in
+        self.closeEnabled = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+          self.tapCount = 2
         }
+      }
+      .onReceive(
+        NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)
+      ) { _ in
+        self.closeEnabled = false
+        self.tapCount = 3
+      }
+      .onReceive(
+        NotificationCenter.default.publisher(for: ClockView.mouseDidEnterNotification)
+      ) { _ in
+        self.closeEnabled = true
       }
       .onHover {
         self.closeEnabled = $0
@@ -101,10 +135,39 @@ extension NSWindow {
   }
 }
 
+class MouseTrackingHostingView: NSHostingView<ClockView> {
+  required init(rootView: ClockView) {
+    super.init(rootView: rootView)
+    addTrackingArea(
+      NSTrackingArea(
+        rect: bounds,
+        options: [
+          .inVisibleRect,
+          .mouseEnteredAndExited,
+          .activeAlways,
+        ],
+        owner: self,
+        userInfo: nil))
+  }
+
+  required init?(coder aDecoder: NSCoder) {
+    assert(false)
+    return nil
+  }
+
+  override func mouseEntered(with event: NSEvent) {
+    NotificationCenter.default.post(name: ClockView.mouseDidEnterNotification, object: nil)
+  }
+
+  override func mouseExited(with event: NSEvent) {
+    NotificationCenter.default.post(name: ClockView.mouseDidExitNotification, object: nil)
+  }
+}
+
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
   let window: NSWindow = .makeWindow()
-  var hostingView: NSView = NSHostingView(rootView: ClockView())
+  var hostingView: NSView = MouseTrackingHostingView(rootView: ClockView())
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.delegate = self

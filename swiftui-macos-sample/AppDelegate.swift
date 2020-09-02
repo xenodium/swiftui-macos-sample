@@ -4,6 +4,7 @@ import SwiftUI
 struct ClockView: View {
   static let mouseDidEnterNotification = Notification.Name("ClockMouseDidEnterNotification")
   static let mouseDidExitNotification = Notification.Name("ClockMouseDidExitNotification")
+  static let mirrorNotification = Notification.Name("ClockMirrorNotification")
 
   @State
   private var time = "--:--"
@@ -70,13 +71,16 @@ struct ClockView: View {
       .gesture(
         TapGesture(count: self.tapCount)
           .onEnded { _ in
-            hidden = true
-            hideTimer?.invalidate()
-            hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
-              self.hidden = false
-            }
+            NotificationCenter.default.post(name: ClockView.mirrorNotification, object: nil)
           }
       )
+      .onLongPressGesture(minimumDuration: 1) {
+        hidden = true
+        hideTimer?.invalidate()
+        hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
+          self.hidden = false
+        }
+      }
       // Mouse events are more effective than onHover (because hover doesn't trigger on macOS if window is not active).
       .onReceive(
         NotificationCenter.default.publisher(for: ClockView.mouseDidExitNotification)
@@ -165,10 +169,34 @@ class MouseTrackingHostingView: NSHostingView<ClockView> {
 class AppDelegate: NSObject, NSApplicationDelegate {
   let window: NSWindow = .makeWindow()
   var hostingView: NSView = MouseTrackingHostingView(rootView: ClockView())
+  var observer: Any?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.delegate = self
     window.contentView = hostingView
+
+    observer = NotificationCenter.default.addObserver(
+      forName: ClockView.mirrorNotification, object: nil, queue: nil
+    ) { [weak self] _ in
+      self?.window.mirror()
+
+      // Restore location after 60 seconds.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+        self?.window.mirror()
+      }
+    }
+  }
+}
+
+extension NSWindow {
+  func mirror() {
+    guard let screenFrame = NSScreen.main?.frame else {
+      return
+    }
+
+    var origin = frame.origin
+    origin.y = (screenFrame.maxY - frame.origin.y) - frame.height
+    setFrameOrigin(origin)
   }
 }
 

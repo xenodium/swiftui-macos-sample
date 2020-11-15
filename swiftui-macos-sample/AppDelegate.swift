@@ -10,7 +10,7 @@ struct ClockView: View {
   private var time = "--:--"
 
   @State
-  private var date = "--- --"
+  private var date = "--- --- --"
 
   @State
   private var closeEnabled = false
@@ -39,7 +39,7 @@ struct ClockView: View {
               self.time = timeFormatter.string(from: input)
 
               let dateFormatter = DateFormatter()
-              dateFormatter.dateFormat = "MMM d"
+              dateFormatter.dateFormat = "E, MMM d"
               self.date = dateFormatter.string(from: input)
             }
             .font(
@@ -50,11 +50,11 @@ struct ClockView: View {
             )
             .padding(0)
           Text(date)
-            .foregroundColor(Color(hex: "#e796d2"))
+            // .foregroundColor(Color(hex: "#e796d2"))
             .font(
               Font.system(
                 size: (pow(geometry.size.width, 2) + pow(geometry.size.height, 2)).squareRoot()
-                  / 15
+                  / 14
               )
             )
         }.frame(width: geometry.size.width, height: self.hidden ? 0 : geometry.size.height)

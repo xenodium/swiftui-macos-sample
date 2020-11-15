@@ -10,12 +10,16 @@ struct ClockView: View {
   private var time = "--:--"
 
   @State
+  private var date = "--- --"
+
+  @State
   private var closeEnabled = false
 
   // Variable tap count, because when the window is not focused, we need 3 taps (to achieve 2) ¯\_(ツ)_/¯
   @State
   private var tapCount = 3
 
+  // Can be used to hide, but not used. Trying out mirroring.
   @State
   private var hidden = false
 
@@ -30,9 +34,13 @@ struct ClockView: View {
         VStack {
           Text(self.time)
             .onReceive(self.timer) { input in
-              let formatter = DateFormatter()
-              formatter.dateFormat = "HH:mm"
-              self.time = formatter.string(from: input)
+              let timeFormatter = DateFormatter()
+              timeFormatter.dateFormat = "HH:mm"
+              self.time = timeFormatter.string(from: input)
+
+              let dateFormatter = DateFormatter()
+              dateFormatter.dateFormat = "MMM d"
+              self.date = dateFormatter.string(from: input)
             }
             .font(
               Font.system(
@@ -40,11 +48,18 @@ struct ClockView: View {
                   + pow(geometry.size.height, 2)).squareRoot() / 4
               ).bold()
             )
-            .padding()
+            .padding(0)
+          Text(date)
+            .foregroundColor(Color(hex: "#e796d2"))
+            .font(
+              Font.system(
+                size: (pow(geometry.size.width, 2) + pow(geometry.size.height, 2)).squareRoot()
+                  / 15
+              )
+            )
         }.frame(width: geometry.size.width, height: self.hidden ? 0 : geometry.size.height)
           .background(Color.black)
           .cornerRadius(10)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         if self.closeEnabled {
           VStack {
@@ -74,13 +89,6 @@ struct ClockView: View {
             NotificationCenter.default.post(name: ClockView.mirrorNotification, object: nil)
           }
       )
-      .onLongPressGesture(minimumDuration: 1) {
-        hidden = true
-        hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { _ in
-          self.hidden = false
-        }
-      }
       // Mouse events are more effective than onHover (because hover doesn't trigger on macOS if window is not active).
       .onReceive(
         NotificationCenter.default.publisher(for: ClockView.mouseDidExitNotification)
@@ -213,5 +221,25 @@ extension NSRect {
       x: screenFrame.maxX - fallback.width - initialMargin,
       y: screenFrame.maxY - fallback.height - initialMargin,
       width: fallback.width, height: fallback.height)
+  }
+}
+
+extension Color {
+  init(hex text: String) {
+    var text: String = text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    if text.hasPrefix("#") {
+      text.removeFirst()
+    }
+    self.init(hex: UInt(text, radix: 16) ?? 0)
+  }
+
+  init(hex: UInt, alpha: Double = 1) {
+    self.init(
+      .sRGB,
+      red: Double((hex >> 16) & 0xff) / 255,
+      green: Double((hex >> 08) & 0xff) / 255,
+      blue: Double((hex >> 00) & 0xff) / 255,
+      opacity: alpha
+    )
   }
 }
